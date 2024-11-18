@@ -5,6 +5,7 @@ Pillow
 scikit-image
 scikit-learn
 mysql-connector-python
+mysqlclient
 flask
 flask_sqlalchemy
 flask_cors
