@@ -1,0 +1,10 @@
+requests
+numpy
+rembg
+Pillow
+scikit-image
+scikit-learn
+mysql-connector-python
+flask
+flask_sqlalchemy
+flask_cors
