@@ -8,7 +8,5 @@ mysql-connector-python
 flask
 flask_sqlalchemy
 flask_cors
-textblob 
-fastapi 
-uvicorn
+gunicorn
 
