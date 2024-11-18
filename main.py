@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify
-from flask_sqlalchemy import SQLAlchemy
 from PIL import Image
-from io import BytesIO
+from io import BytesIO                                                                                                                                                                                                                                              
 from kmean import train,search
 import time
 
@@ -9,9 +8,6 @@ import time
 app = Flask(__name__)
 # CORS(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:hieu08052002@localhost/kmeanfood'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
-db = SQLAlchemy(app)
 
 # Định nghĩa route cơ bản
 @app.route('/')
