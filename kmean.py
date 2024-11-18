@@ -50,7 +50,7 @@ def search(imageRp):
     
     return image_ids
 
-def apply_kmeans(data, n_clusters=3):
+def apply_kmeans(data, n_clusters=5):
     kmeans = KMeans(n_clusters=n_clusters, random_state=0)
 
     kmeans.fit(data)
