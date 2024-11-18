@@ -78,9 +78,6 @@ def dataClean(data):
     return True    
     
     
-
-
-
 def dataCollection():
     response = requests.get(port + "/api/auth/image/get/all").json()
     return response
@@ -110,9 +107,9 @@ def convert_bgr_to_hsv(R, G, B):
 
 def extract_hsv(image):
     # Mỗi mảng lưu một giá trị thuộc hệ màu HSV
-    h_vector = np.zeros(6, dtype=int) # Lưu giá trị Hue
-    s_vector = np.zeros(8, dtype=int) # Lưu giá trị Saturation
-    v_vector = np.zeros(10, dtype=int) # Lưu giá trị Value
+    h_vector = np.zeros(6, dtype=int) 
+    s_vector = np.zeros(8, dtype=int) 
+    v_vector = np.zeros(10, dtype=int) 
 
     # Duyệt qua từng pixel trong ảnh
     width = size
@@ -170,7 +167,7 @@ def calculate_distance(centroid, new_image):
 def save_image(image_id,cluster, centroid_id):
     clusterR = [str(round(num, 4)) for num in cluster]
     cluster_str = ",".join(map(str, clusterR))
-    # Câu lệnh SQL để chèn dữ liệu vào bảng image_features
+
     sql = "INSERT INTO cluster (image_id,cluster, centroid_id) VALUES (%s, %s, %s)"
     values = (image_id, cluster_str , centroid_id)
 
@@ -192,12 +189,12 @@ def get_all_clusters():
 def prepare_data_for_kmeans(clusters):
     data = []
     for cluster in clusters:
-        # Lấy phần tử thứ 1 của mỗi tuple (chuỗi cluster)
+
         cluster_str = cluster[1] 
-        # Chuyển chuỗi value thành list các số (sử dụng dấu phẩy để phân tách)
+   
         value = np.array(list(map(float, cluster_str.split(','))))
         data.append(value)
-    # Chuyển danh sách thành mảng numpy
+
     return np.array(data)
 
 def save_cluster_labels(labels, image_ids):
@@ -206,12 +203,12 @@ def save_cluster_labels(labels, image_ids):
     try:
         # Cập nhật nhãn cho từng image_id
         for label, image_id in zip(labels, image_ids):
-            # Kiểm tra và ép kiểu dữ liệu trước khi gửi vào cơ sở dữ liệu
-            label = int(label)  # Đảm bảo label là kiểu int
-            image_id = int(image_id)  # Đảm bảo image_id là kiểu int
+          
+            label = int(label)  
+            image_id = int(image_id)  
             cursor.execute(query, (label, image_id))
         
-        # Commit thay đổi vào cơ sở dữ liệu
+       
         db.commit()
         print(f"{cursor.rowcount} rows updated successfully.")
     
@@ -221,12 +218,12 @@ def save_cluster_labels(labels, image_ids):
 def save_centroids(centroids):
     for i, centroid in enumerate(centroids):
         centroidRound = [str(round(num, 4)) for num in centroid]
-        centroid_string = ",".join(map(str, centroidRound))  # Chuyển centroid thành chuỗi (các giá trị phân tách bằng dấu phẩy)
+        centroid_string = ",".join(map(str, centroidRound))  
         
-        # Lệnh SQL để lưu centroid
+
         query = "INSERT INTO centroids (cluster_id, value) VALUES (%s, %s)"
         
-        # Thực thi câu lệnh SQL với cluster_id và giá trị centroid
+       
         cursor.execute(query, (i, centroid_string))
         db.commit()
 def delete_old_centroids():
@@ -268,34 +265,33 @@ def get_clusters_by_centroid(centroid_id):
     return clusters
 
 def find_nearest_centroid(new_cluster, centroids):
-    # Tính khoảng cách giữa cluster mới và tất cả các centroid
+   
     distances = {cid: euclidean_distances([new_cluster], [value])[0][0] for cid, value in centroids.items()}
-    # Sắp xếp các centroid theo khoảng cách gần nhất
+   
     sorted_centroids = sorted(distances, key=distances.get)
     return sorted_centroids
 
 def sort_clusters_by_distance(new_cluster, clusters):
-    # Sắp xếp các clusters theo khoảng cách từ cluster mới
+   
     clusters.sort(key=lambda x: euclidean_distances([new_cluster], [x[1]])[0][0])
-    # Trả về danh sách image_id sau khi sắp xếp
+   
     return [cluster[0] for cluster in clusters]
 
 def get_sorted_image_ids(new_cluster):
-    # Lấy tất cả các centroid
+   
     centroids = get_all_centroids()
 
-    # Tìm thứ tự các centroid theo khoảng cách gần nhất
+   
     nearest_centroids = find_nearest_centroid(new_cluster, centroids)
 
     sorted_image_ids = []
 
-    # Xử lý centroid gần nhất trước tiên
     for i, centroid_id in enumerate(nearest_centroids):
         clusters = get_clusters_by_centroid(centroid_id)
 
-        if i == 0:  # Centroid gần nhất, cần sắp xếp
+        if i == 0: 
             sorted_image_ids.extend(sort_clusters_by_distance(new_cluster, clusters))
-        else:  # Các centroid còn lại, không cần sắp xếp
+        else: 
             sorted_image_ids.extend([cluster[0] for cluster in clusters])
 
     return sorted_image_ids
