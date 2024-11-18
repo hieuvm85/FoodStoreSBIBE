@@ -9,3 +9,7 @@ mysqlclient
 flask
 flask_sqlalchemy
 flask_cors
+textblob 
+fastapi 
+uvicorn
+

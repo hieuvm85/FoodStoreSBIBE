@@ -2,13 +2,14 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image
 from io import BytesIO
-from flask_cors import CORS
+# from flask_cors import CORS
 from kmean import train,search
 import time
+from fastapi import FastAPI
 
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI(title="FoodSBIBE")
+# CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:hieu08052002@localhost/kmeanfood'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False 
@@ -47,6 +48,6 @@ def process_image():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(debug=True)
+# if __name__ == '__main__':
+#     app.run(debug=True)
 
