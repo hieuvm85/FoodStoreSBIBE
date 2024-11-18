@@ -2,15 +2,11 @@ from flask import Flask, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from PIL import Image
 from io import BytesIO
-from flask_cors import CORS
 from kmean import train,search
 import time
-from fastapi import FastAPI
 
 
-import flask
-
-app = flask.Flask(__name__)
+app = Flask(__name__)
 # CORS(app)
 
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:hieu08052002@localhost/kmeanfood'

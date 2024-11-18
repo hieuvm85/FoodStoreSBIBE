@@ -1,7 +1,6 @@
 import requests
 import numpy as np
 import math
-from rembg import remove
 from PIL import Image
 from io import BytesIO
 from skimage.feature import hog
