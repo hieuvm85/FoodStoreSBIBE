@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from PIL import Image
 from io import BytesIO                                                                                                                                                                                                                                              
 from kmean import train,search
-import time
+import threading
 
 
 app = Flask(__name__)
@@ -16,8 +16,8 @@ def home():
 
 @app.route('/train', methods=['GET'])
 def getImages():
-    time.sleep(5)
-    train()
+    thread = threading.Thread(target=train)
+    thread.start()
     return jsonify({"data": "success"}),200
 
 @app.route('/search', methods=['POST'])
@@ -43,5 +43,5 @@ def process_image():
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
-    app.run()
+    app.run(debug=True)
 

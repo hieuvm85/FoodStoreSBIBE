@@ -6,7 +6,8 @@ from io import BytesIO
 from skimage.feature import hog
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
-import mysql.connector
+import pymysql
+import pickle
 
 
 
@@ -14,26 +15,42 @@ port = "https://foodstore-production-167c.up.railway.app"
 
 size = 128
 
-db = mysql.connector.connect(
-    host="autorack.proxy.rlwy.net",
-    user="root",
-    port=42829,
-    password="kBTDrcjMcanPjHCiipqrjePETXYLhUYn",
-    database="railway"
-)
-cursor = db.cursor()
+try:
+    # Cố gắng kết nối tới cơ sở dữ liệu MySQL
+    conn = pymysql.connect(
+        host="autorack.proxy.rlwy.net",
+        user="root",
+        port=42829,
+        password="kBTDrcjMcanPjHCiipqrjePETXYLhUYn",
+        database="railway"
+    )
+    
+    if conn.open:
+        print("Successfully connected to the database")
+    else:
+        print("Failed to connect")
+except pymysql.MySQLError as e:
+    print(f"Error: {e}")
+cursor = conn.cursor()
 
 def train():
+    print("Training...")
     data = dataCollection()
+    print("Done dataCollection")
     dataClean(data)
+    print("Done dataClean")
     clusters = get_all_clusters()
+    print("Done clusters")
+    
     data = prepare_data_for_kmeans(clusters)
+    print("Done prepare_data_for_kmeans")
     labels, centroids = apply_kmeans(data, n_clusters=3)
-     
+    print("Done update")
+    
     image_ids = [cluster[0] for cluster in clusters]
     save_cluster_labels(labels, image_ids)
     save_centroids(centroids)
-    
+    print("Done")
     return  True
 
 def search(imageRp):
@@ -47,8 +64,7 @@ def search(imageRp):
     
     image_ids = get_sorted_image_ids(cluster)
     
-    return image_ids
-
+    return image_ids 
 def apply_kmeans(data, n_clusters=5):
     kmeans = KMeans(n_clusters=n_clusters, random_state=0)
 
@@ -75,6 +91,7 @@ def dataClean(data):
             hog_vector = extract_hog(image_array)
             cluster= np.concatenate((hsv_vector, hog_vector))
             save_image(image['id'], cluster ,0)
+        print("image " + str(image['id']))
     return True    
     
     
@@ -165,71 +182,74 @@ def calculate_distance(centroid, new_image):
 
     
 def save_image(image_id,cluster, centroid_id):
-    clusterR = [str(round(num, 4)) for num in cluster]
-    cluster_str = ",".join(map(str, clusterR))
+    cluster_blob = pickle.dumps(cluster)
 
-    sql = "INSERT INTO cluster (image_id,cluster, centroid_id) VALUES (%s, %s, %s)"
-    values = (image_id, cluster_str , centroid_id)
+    sql = "INSERT INTO images (image_id,value, cluster_id) VALUES (%s, %s, %s)"
+    values = (image_id, cluster_blob , centroid_id)
 
     cursor.execute(sql, values)
-    db.commit()
+    conn.commit()
     
 def check_image(image_id):
-    query = "SELECT COUNT(*) FROM cluster WHERE image_id = %s"
+    query = "SELECT COUNT(*) FROM images WHERE image_id = %s"
     cursor.execute(query, (image_id,))
     result = cursor.fetchone()
     return result[0] > 0
 
 def get_all_clusters():
-    query = "SELECT image_id, cluster FROM cluster"
+    query = "SELECT image_id, value, cluster_id FROM images"
     cursor.execute(query)
     result = cursor.fetchall()
-    return result
+    
+    clusters = []
+    for cluster in result:
+        image_id = cluster[0]
+        # Deserialize the value back from BLOB to original array format
+        cluster_value = pickle.loads(cluster[1])
+        clusters.append((image_id, cluster_value, cluster[2]))  # cluster[2] is cluster_id
+
+    return clusters
 
 def prepare_data_for_kmeans(clusters):
     data = []
     for cluster in clusters:
 
-        cluster_str = cluster[1] 
+        # cluster_str = cluster[1] 
    
-        value = np.array(list(map(float, cluster_str.split(','))))
-        data.append(value)
+        # value = np.array(list(map(float, cluster_str.split(','))))
+        data.append(cluster[1])
 
     return np.array(data)
 
 def save_cluster_labels(labels, image_ids):
-    query = "UPDATE cluster SET centroid_id = %s WHERE image_id = %s"
+    query = "UPDATE images SET cluster_id = %s WHERE image_id = %s"
     
-    try:
+
         # Cập nhật nhãn cho từng image_id
-        for label, image_id in zip(labels, image_ids):
+    for label, image_id in zip(labels, image_ids):
           
-            label = int(label)  
-            image_id = int(image_id)  
-            cursor.execute(query, (label, image_id))
+        label = int(label)  
+        image_id = int(image_id)  
+        cursor.execute(query, (label, image_id))
         
        
-        db.commit()
-        print(f"{cursor.rowcount} rows updated successfully.")
-    
-    except mysql.connector.Error as err:
-        print(f"Error: {err}")
+    conn.commit()
+    print(f"{cursor.rowcount} rows updated successfully.")
         
 def save_centroids(centroids):
+    delete_old_centroids()
     for i, centroid in enumerate(centroids):
-        centroidRound = [str(round(num, 4)) for num in centroid]
-        centroid_string = ",".join(map(str, centroidRound))  
-        
+        centroid_blob = pickle.dumps(centroid)
 
-        query = "INSERT INTO centroids (cluster_id, value) VALUES (%s, %s)"
+        query = "INSERT INTO centroids (cluster, value) VALUES (%s, %s)"
         
        
-        cursor.execute(query, (i, centroid_string))
-        db.commit()
+        cursor.execute(query, (i, centroid_blob))
+        conn.commit()
 def delete_old_centroids():
     query = "DELETE FROM centroids"
     cursor.execute(query)
-    db.commit()
+    conn.commit()
 
 
 def get_all_centroids():
@@ -240,26 +260,29 @@ def get_all_centroids():
     centroids = {}
     for centroid in results:
         centroid_id = centroid[0]
-        value = np.array(list(map(float, centroid[1].split(','))))
+        # Deserialize the value from BLOB to original array format
+        value = pickle.loads(centroid[1])
         centroids[centroid_id] = value
 
     return centroids
 
 def get_clusters_by_centroid(centroid_id):
-    query_centroid = "SELECT cluster_id FROM centroids WHERE id = %s"
+    query_centroid = "SELECT cluster FROM centroids WHERE id = %s"
     cursor.execute(query_centroid, (centroid_id,))
     centroid_result = cursor.fetchone()
     
     cluster_id = centroid_result[0]
     
-    query = "SELECT image_id, cluster FROM cluster WHERE centroid_id = %s"
+    query = "SELECT image_id, value FROM images WHERE cluster_id = %s"
     cursor.execute(query, (cluster_id,))
     results = cursor.fetchall()
 
     clusters = []
     for result in results:
         image_id = result[0]
-        cluster_value = np.array(list(map(float, result[1].split(','))))
+        cluster_value = pickle.loads(result[1])
+        # cluster_value = np.array(list(map(float, result[1].split(','))))
+        
         clusters.append((image_id, cluster_value))
 
     return clusters
@@ -283,12 +306,13 @@ def get_sorted_image_ids(new_cluster):
 
    
     nearest_centroids = find_nearest_centroid(new_cluster, centroids)
-
+    
     sorted_image_ids = []
-
+    
     for i, centroid_id in enumerate(nearest_centroids):
-        clusters = get_clusters_by_centroid(centroid_id)
 
+        clusters = get_clusters_by_centroid(centroid_id)
+        print("ok")
         if i == 0: 
             sorted_image_ids.extend(sort_clusters_by_distance(new_cluster, clusters))
         else: 
