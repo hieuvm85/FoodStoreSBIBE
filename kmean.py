@@ -8,6 +8,7 @@ from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import euclidean_distances
 import pymysql
 import pickle
+import time
 
 
 
@@ -34,6 +35,7 @@ except pymysql.MySQLError as e:
 cursor = conn.cursor()
 
 def train():
+    time.sleep(5)
     print("Training...")
     data = dataCollection()
     print("Done dataCollection")
