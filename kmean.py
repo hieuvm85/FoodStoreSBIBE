@@ -68,7 +68,7 @@ def search(imageRp):
     image_ids = get_sorted_image_ids(cluster)
     
     return image_ids 
-def apply_kmeans(data, n_clusters=5):
+def apply_kmeans(data, n_clusters=3):
     kmeans = KMeans(n_clusters=n_clusters, random_state=0)
 
     kmeans.fit(data)
@@ -317,7 +317,6 @@ def get_sorted_image_ids(new_cluster):
     for i, centroid_id in enumerate(nearest_centroids):
 
         clusters = get_clusters_by_centroid(centroid_id)
-        print("ok")
         if i == 0: 
             sorted_image_ids.extend(sort_clusters_by_distance(new_cluster, clusters))
         else: 
