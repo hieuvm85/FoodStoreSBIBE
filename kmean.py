@@ -5,6 +5,7 @@ from PIL import Image
 from io import BytesIO
 from skimage.feature import hog
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score, davies_bouldin_score, homogeneity_score, completeness_score, v_measure_score, adjusted_rand_score
 from sklearn.metrics.pairwise import euclidean_distances
 import pymysql
 import pickle
@@ -46,7 +47,7 @@ def train():
     
     data = prepare_data_for_kmeans(clusters)
     print("Done prepare_data_for_kmeans")
-    labels, centroids = apply_kmeans(data, n_clusters=3)
+    labels, centroids = apply_kmeans(data, n_clusters=5)
     print("Done update")
     
     image_ids = [cluster[0] for cluster in clusters]
@@ -72,6 +73,8 @@ def apply_kmeans(data, n_clusters=5):
 
     kmeans.fit(data)
     labels = kmeans.labels_
+    
+    evaluate_kmeans(data, labels)
 
     return labels, kmeans.cluster_centers_
 
@@ -321,3 +324,32 @@ def get_sorted_image_ids(new_cluster):
             sorted_image_ids.extend([cluster[0] for cluster in clusters])
 
     return sorted_image_ids
+
+
+
+# danh gia kmeans
+def evaluate_kmeans(data, labels, true_labels=None):
+    # Inertia
+    inertia = KMeans(n_clusters=3).fit(data).inertia_
+    print(f"Inertia: {inertia}")
+    
+    # Silhouette Score
+    silhouette_avg = silhouette_score(data, labels)
+    print(f"Silhouette Score: {silhouette_avg}")
+    
+    # Davies-Bouldin Index
+    davies_bouldin = davies_bouldin_score(data, labels)
+    print(f"Davies-Bouldin Index: {davies_bouldin}")
+    
+    # Homogeneity, Completeness, and V-Measure (if true_labels are available)
+    if true_labels is not None:
+        homogeneity = homogeneity_score(true_labels, labels)
+        completeness = completeness_score(true_labels, labels)
+        v_measure = v_measure_score(true_labels, labels)
+        ari = adjusted_rand_score(true_labels, labels)
+        print(f"Homogeneity: {homogeneity}")
+        print(f"Completeness: {completeness}")
+        print(f"V-Measure: {v_measure}")
+        print(f"Adjusted Rand Index: {ari}")
+    else:
+        print("True labels not provided. Skipping Homogeneity, Completeness, V-Measure, and ARI.")
