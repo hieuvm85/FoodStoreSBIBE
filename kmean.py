@@ -340,21 +340,21 @@ def sort_clusters_by_distance(new_cluster, clusters):
 def get_sorted_image_ids(new_cluster):
    
     centroids = get_all_centroids()
-    print('ok1')
+    # print('ok1')
    
     nearest_centroids = find_nearest_centroid(new_cluster, centroids)
     
     sorted_image_ids = []
-    print('ok2')
+    # print('ok2')
     for i, centroid_id in enumerate(nearest_centroids):
 
         clusters = get_clusters_by_centroid(centroid_id)
         if i == 0: 
             sorted_image_ids.extend(sort_clusters_by_distance(new_cluster, clusters))
-            print('ok3')
+            # print('ok3')
         else: 
             sorted_image_ids.extend([cluster[0] for cluster in clusters])
-            print('ok4')
+            # print('ok4')
 
     return sorted_image_ids
 

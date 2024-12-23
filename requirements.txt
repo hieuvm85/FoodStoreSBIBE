@@ -1,6 +1,7 @@
 requests
 numpy
 Pillow
+matplotlib
 scikit-image
 scikit-learn
 PyMySQL
