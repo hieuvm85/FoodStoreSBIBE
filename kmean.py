@@ -5,6 +5,8 @@ from PIL import Image
 from io import BytesIO
 from skimage.feature import hog
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
+import matplotlib.pyplot as plt
 from sklearn.metrics import silhouette_score, davies_bouldin_score, homogeneity_score, completeness_score, v_measure_score, adjusted_rand_score
 from sklearn.metrics.pairwise import euclidean_distances
 import pymysql
@@ -17,9 +19,10 @@ port = "https://foodstore-production-167c.up.railway.app"
 
 size = 128
 
-try:
+def get_db_connection():
+
     # Cố gắng kết nối tới cơ sở dữ liệu MySQL
-    conn = pymysql.connect(
+    return pymysql.connect(
         host="autorack.proxy.rlwy.net",
         user="root",
         port=42829,
@@ -27,16 +30,11 @@ try:
         database="railway"
     )
     
-    if conn.open:
-        print("Successfully connected to the database")
-    else:
-        print("Failed to connect")
-except pymysql.MySQLError as e:
-    print(f"Error: {e}")
+conn =  get_db_connection()      
 cursor = conn.cursor()
 
 def train():
-    time.sleep(5)
+    time.sleep(3)
     print("Training...")
     data = dataCollection()
     print("Done dataCollection")
@@ -47,9 +45,30 @@ def train():
     
     data = prepare_data_for_kmeans(clusters)
     print("Done prepare_data_for_kmeans")
-    labels, centroids = apply_kmeans(data, n_clusters=5)
-    print("Done update")
+    labels, centroids = apply_kmeans(data, n_clusters=3)
+    print("Done training, watting save data...")
     
+    # #show
+    # pca = PCA(n_components=2)
+    # reduced_data = pca.fit_transform(data)
+    # # Áp dụng PCA lên các tâm cụm (centroids)
+    # reduced_centroids = pca.transform(centroids)
+    # # Trực quan hóa dữ liệu và tâm cụm
+    # plt.figure(figsize=(10, 8))
+    # #Vẽ dữ liệu đã phân cụm
+    # scatter = plt.scatter(reduced_data[:, 0], reduced_data[:, 1], c=labels, cmap='viridis', s=100, label='Data Points')
+    # # Vẽ tâm cụm
+    # plt.scatter(reduced_centroids[:, 0], reduced_centroids[:, 1], c='red', marker='X', s=200, label='Centroids')
+    # plt.colorbar(scatter, label='Cluster Labels')
+    # plt.title('KMeans Clusters Visualization with PCA', fontsize=16)
+    # plt.xlabel('Principal Component 1', fontsize=12)
+    # plt.ylabel('Principal Component 2', fontsize=12)
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
+    
+    
+    #save model
     image_ids = [cluster[0] for cluster in clusters]
     save_cluster_labels(labels, image_ids)
     save_centroids(centroids)
@@ -81,8 +100,11 @@ def apply_kmeans(data, n_clusters=3):
 
 
 def dataClean(data):
+    images_in_db = get_array_id_image()
+    print(images_in_db)
     for image in data:
-        if(check_image(image['id']) == False):
+        # if(check_image(image['id']) == False):
+        if( image['id'] not in images_in_db):
             response = requests.get("https://pushimage-production.up.railway.app/api/auth/image/" + image['link'])
             imageRp = Image.open(BytesIO(response.content))  
             img_resized = imageRp.resize((size, size), Image.Resampling.LANCZOS)
@@ -191,6 +213,7 @@ def save_image(image_id,cluster, centroid_id):
 
     sql = "INSERT INTO images (image_id,value, cluster_id) VALUES (%s, %s, %s)"
     values = (image_id, cluster_blob , centroid_id)
+    
 
     cursor.execute(sql, values)
     conn.commit()
@@ -200,7 +223,12 @@ def check_image(image_id):
     cursor.execute(query, (image_id,))
     result = cursor.fetchone()
     return result[0] > 0
-
+def get_array_id_image():
+    query = "SELECT image_id FROM images"
+    cursor.execute(query)
+    result = cursor.fetchall()
+    image_ids = [row[0] for row in result]
+    return image_ids
 def get_all_clusters():
     query = "SELECT image_id, value, cluster_id FROM images"
     cursor.execute(query)
@@ -239,7 +267,6 @@ def save_cluster_labels(labels, image_ids):
         
        
     conn.commit()
-    print(f"{cursor.rowcount} rows updated successfully.")
         
 def save_centroids(centroids):
     delete_old_centroids()
@@ -259,6 +286,9 @@ def delete_old_centroids():
 
 def get_all_centroids():
     query = "SELECT id, value FROM centroids"
+
+    conn =  get_db_connection()      
+    cursor = conn.cursor()
     cursor.execute(query)
     results = cursor.fetchall()
 
@@ -273,6 +303,8 @@ def get_all_centroids():
 
 def get_clusters_by_centroid(centroid_id):
     query_centroid = "SELECT cluster FROM centroids WHERE id = %s"
+    conn =  get_db_connection()      
+    cursor = conn.cursor()
     cursor.execute(query_centroid, (centroid_id,))
     centroid_result = cursor.fetchone()
     
@@ -308,19 +340,21 @@ def sort_clusters_by_distance(new_cluster, clusters):
 def get_sorted_image_ids(new_cluster):
    
     centroids = get_all_centroids()
-
+    print('ok1')
    
     nearest_centroids = find_nearest_centroid(new_cluster, centroids)
     
     sorted_image_ids = []
-    
+    print('ok2')
     for i, centroid_id in enumerate(nearest_centroids):
 
         clusters = get_clusters_by_centroid(centroid_id)
         if i == 0: 
             sorted_image_ids.extend(sort_clusters_by_distance(new_cluster, clusters))
+            print('ok3')
         else: 
             sorted_image_ids.extend([cluster[0] for cluster in clusters])
+            print('ok4')
 
     return sorted_image_ids
 

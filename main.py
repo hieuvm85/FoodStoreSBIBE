@@ -32,6 +32,7 @@ def process_image():
     try:
         # Mở và xử lý ảnh
         image = Image.open(BytesIO(file.read()))
+        print('ok')
         images= search(image)
 
         return jsonify({
