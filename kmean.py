@@ -48,24 +48,24 @@ def train(k):
     labels, centroids = apply_kmeans(data, n_clusters=k)
     print("Done training, watting save data...")
     
-    #show
-    pca = PCA(n_components=2)
-    reduced_data = pca.fit_transform(data)
-    # Áp dụng PCA lên các tâm cụm (centroids)
-    reduced_centroids = pca.transform(centroids)
-    # Trực quan hóa dữ liệu và tâm cụm
-    plt.figure(figsize=(10, 8))
-    #Vẽ dữ liệu đã phân cụm
-    scatter = plt.scatter(reduced_data[:, 0], reduced_data[:, 1], c=labels, cmap='viridis', s=100, label='Data Points')
-    # Vẽ tâm cụm
-    plt.scatter(reduced_centroids[:, 0], reduced_centroids[:, 1], c='red', marker='X', s=200, label='Centroids')
-    plt.colorbar(scatter, label='Cluster Labels')
-    plt.title('Hình ảnh phân cụm với PCA', fontsize=16)
-    plt.xlabel('Principal Component 1', fontsize=12)
-    plt.ylabel('Principal Component 2', fontsize=12)
-    plt.legend()
-    plt.grid(True)
-    plt.show()
+    # #show
+    # pca = PCA(n_components=2)
+    # reduced_data = pca.fit_transform(data)
+    # # Áp dụng PCA lên các tâm cụm (centroids)
+    # reduced_centroids = pca.transform(centroids)
+    # # Trực quan hóa dữ liệu và tâm cụm
+    # plt.figure(figsize=(10, 8))
+    # #Vẽ dữ liệu đã phân cụm
+    # scatter = plt.scatter(reduced_data[:, 0], reduced_data[:, 1], c=labels, cmap='viridis', s=100, label='Data Points')
+    # # Vẽ tâm cụm
+    # plt.scatter(reduced_centroids[:, 0], reduced_centroids[:, 1], c='red', marker='X', s=200, label='Centroids')
+    # plt.colorbar(scatter, label='Cluster Labels')
+    # plt.title('Hình ảnh phân cụm với PCA', fontsize=16)
+    # plt.xlabel('Principal Component 1', fontsize=12)
+    # plt.ylabel('Principal Component 2', fontsize=12)
+    # plt.legend()
+    # plt.grid(True)
+    # plt.show()
     
     
     #save model
