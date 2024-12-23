@@ -16,7 +16,8 @@ def home():
 
 @app.route('/train', methods=['GET'])
 def getImages():
-    thread = threading.Thread(target=train)
+    k=3
+    thread = threading.Thread(target=train(k))
     thread.start()
     return jsonify({"data": "success"}),200
 
