@@ -15,7 +15,7 @@ import time
 
 
 
-port = "https://foodstore-production-167c.up.railway.app"
+port = "http://13.54.3.150"
 
 size = 128
 
